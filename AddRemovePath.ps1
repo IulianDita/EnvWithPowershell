@@ -9,22 +9,6 @@
     Filename       : AddRemovePath.ps1
     Author         : Iulian Dita (iulian.dita@gmail.com)
     Prerequisite   : PowerShell V3 over Vista and upper.
-.LINK
-    Script located at:
-    http://itguy.pro
-.VERSION
-    0.7
-.VERSION_HISTORY
-    0.1 Initial version
-    0.2 Bug fixes
-    0.3 Cosmetic fixes, automatic removal of preceding ";"
-    0.4 Fixed double entries
-    0.5 Kill Explorer and CMD processes before making any modifications
-    0.6 Check if folder to be removed already exists in PATH
-        Escaping special characters no longer needed for the removal function
-    0.7 Cleaned the code and removed some syntax mismatches
-	Included the sendmessage function to avoid killing the explorer task
-	Used [reges]::escape() to avoid running into troubles with the path-string and -match methode
 #>
 
 if (-not ("win32.nativemethods" -as [type])) {
@@ -49,7 +33,7 @@ function global:ADD-PATH
         [string] $Folder
     )
 
-    # See if a folder variable has been supplied.
+    # Check if a folder variable has been supplied.
     if (!$Folder -or $Folder -eq "" -or $Folder -eq $null) { 
         throw 'No Folder Supplied. $ENV:PATH Unchanged'
     }
@@ -57,19 +41,19 @@ function global:ADD-PATH
     # Get the current search path from the environment keys in the registry.
     $oldPath=$(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH).Path
     
-    # See if the new Folder is already in the path.
+    # Check if the new Folder is already in the path.
     if ($oldPath | Select-String -SimpleMatch $Folder){ 
         return 'Folder already within $ENV:PATH' 
     }
 	
-    # Set the New Path and add the ; in front
+    # Set the New Path
     $newPath=$oldPath+';'+$Folder
     Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $newPath -ErrorAction Stop
    
     # Show our results back to the world
     return 'This is the new PATH content: '+$newPath
 
-    # notify all windows of environment block change
+    # Notify all windows of environment block change
     [win32.nativemethods]::SendMessageTimeout($HWND_BROADCAST, $WM_SETTINGCHANGE, [uintptr]::Zero, "Environment", 2, 5000, [ref]$result)
 }
 
@@ -80,12 +64,12 @@ function global:REMOVE-PATH {
         [String] $Folder
     )
 
-    # See if a folder variable has been supplied.
+    # Check if a folder variable has been supplied.
     if (!$Folder -or $Folder -eq "" -or $Folder -eq $NULL) { 
         throw 'No Folder Supplied. $ENV:PATH Unchanged'
     }
 
-    # add a leading ";" if missing
+    # Add a leading ";" if missing
     if ($Folder[0] -ne ";") {
         $Folder = ";" + $Folder;
     }
@@ -106,15 +90,6 @@ function global:REMOVE-PATH {
     # Show what we just did
     return 'This is the new PATH content: '+$newPath
 
-    # notify all windows of environment block change
+    # Notify all windows of environment block change
     [win32.nativemethods]::SendMessageTimeout($HWND_BROADCAST, $WM_SETTINGCHANGE, [uintptr]::Zero, "Environment", 2, 5000, [ref]$result)
 }
-
-
-# Use ADD-PATH or REMOVE-PATH accordingly.
-
-#Anything to Add?
-
-#Anything to Remove?
-
-REMOVE-PATH "%_installpath_bin%"
